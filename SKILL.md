@@ -24,8 +24,8 @@ This skill is K-Framework-specific but language-agnostic. Bitcoin Script is the 
 Step 0  Gate: does the language qualify? (3 oracles)        ── once
 Step 1  Build the oracle harness                            ── once
 Step 2  Pick the oldest unfinished version layer            ──┐
-Step 3  Order its features by dependency → backlog          ── │ outer
-Step 4  Per feature: read spec → write rules → run → green  ── │ loop
+Step 3  Order its features by dependency → backlog          ──│ outer
+Step 4  Per feature: read spec → write rules → run → green  ──│ loop
 Step 5  Advance gate: full re-run, zero regression          ──┘
 ```
 

@@ -25,7 +25,7 @@ references/case-study-bitcoin-script.md   the decoupled worked example
 Clone anywhere, then symlink the repo into your skills directory so edits here stay live:
 
 ```sh
-git clone <this-repo> ~/dev/creating-k-semantics
+git clone https://github.com/zojize/creating-k-semantics ~/dev/creating-k-semantics
 ln -s ~/dev/creating-k-semantics ~/.claude/skills/creating-k-semantics
 ```
 
