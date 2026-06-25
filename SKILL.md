@@ -75,13 +75,21 @@ lexing / values / types  →  expressions  →  statements & control flow
 
 Each sub-goal binds one spec section to one conformance subset.
 
+**At the builtins/stdlib stage, choose an architecture deliberately** (it is load-bearing enough to be a stop-for-review call). Two approaches work: write each builtin as native K rules, or **self-host the library in the source language itself** — a prelude written in the language under study, layered over a small core of K-level abstract operations. Real references lean on the latter: much of the JavaScript standard library is specified that way and KJS implements it in JavaScript; much of CPython's stdlib is Python. Self-hosting trades K-rule volume for a source prelude and keeps the K core small and spec-shaped; native rules keep everything in one formalism.
+
 **Completion criterion:** an ordered, written backlog of sub-goals for this layer; each item names its spec section and its test-subset tag.
+
+## When K's grammar can't parse the language
+
+The first sub-goal, lexing, can hit a wall the tutorial languages never expose: **K's GLR parser is error-driven and discards whitespace and newlines as layout, so a context-sensitive lexing rule the spec mandates cannot be written as a grammar production.** JavaScript Automatic Semicolon Insertion, Python and Haskell significant indentation, and the JavaScript `/`-division-versus-regex split are all in this class — clean-grammar toy languages have none of them, a real language hits one on day one.
+
+The fix is architectural, so treat it as a **stop-for-review** decision: model the irregular part as a *separate K definition that rewrites source text into normalised source text* (an in-K lexer plus the transformation), then let the evaluator's grammar parse the normalised output, where the irregularity is gone — explicit statement terminators, explicit block delimiters. Two kompiled definitions, glued by a thin harness that moves one string between them. Decide this before writing the evaluator grammar; it shapes the whole front end. The scanner-level mechanics (custom tokens, non-ASCII, projection-reserved braces) are in [references/k-patterns.md](references/k-patterns.md).
 
 ## Step 4 — The inner loop, per feature: read → write → verify → green
 
 Take the next sub-goal and run the inner loop:
 
-1. **Read the spec clause first.** Mirror its structure (for ECMA-262, mirror the abstract operations) — see [references/k-patterns.md](references/k-patterns.md) for the K idioms: the `<k>` computation cell, `strict`/`seqstrict` for evaluation order, the env+store split, control operators, and using a type system as a *separate* semantics over the same grammar.
+1. **Read the spec clause first** — and mine any **existing formalization or the reference implementation's own source** alongside it. A prior K semantics (KJS, KEVM), a mechanized spec, or the engine's own C/Python source often pins down a step the prose leaves implicit. Mirror the spec's structure (for ECMA-262, mirror the abstract operations); adapt a borrowed algorithm to *your* configuration rather than copying its structure across, since architectures differ. See [references/k-patterns.md](references/k-patterns.md) for the K idioms: the `<k>` computation cell, `strict`/`seqstrict` for evaluation order, the env+store split, control operators, and using a type system as a *separate* semantics over the same grammar.
 2. **Write the minimal rules** for this feature only.
 3. **Run the harness** on this sub-goal's subset. Iterate red→green.
 4. **No overfitting.** Every rule cites a spec clause. A vector that goes green only via a special-case with no spec basis means the real bug is elsewhere — usually a missing foundational rule. Fix the cause; the no-regression gate will later expose the debt.
@@ -118,6 +126,6 @@ An executable semantics that cannot run real-world-sized programs is not finishe
 
 ## References
 
-- [references/k-patterns.md](references/k-patterns.md) — transferable K idioms for PL semantics, with verbatim examples from the K PL tutorial (LAMBDA, IMP, IMP++, SIMPLE) mapped to JS/Python.
-- [references/oracle-harness.md](references/oracle-harness.md) — concrete oracle wiring for JS (test262 + V8/Node + ECMA-262) and Python (Lib/test + CPython), including the bootstrap-by-differential-labeling technique.
+- [references/k-patterns.md](references/k-patterns.md) — transferable K idioms for PL semantics, with verbatim examples from the K PL tutorial (LAMBDA, IMP, IMP++, SIMPLE) mapped to JS/Python; plus the front-end lessons real languages need beyond the tutorial's clean grammars (source→source transforms, scanner/token gotchas, unordered-`Map` enumeration).
+- [references/oracle-harness.md](references/oracle-harness.md) — concrete oracle wiring for JS (test262 + V8/Node + ECMA-262) and Python (Lib/test + CPython), the bootstrap-by-differential-labeling technique, the pyk substrate for invoking K, and keeping the reference oracle hermetic.
 - [references/case-study-bitcoin-script.md](references/case-study-bitcoin-script.md) — the proven success story: how this exact method built a Taproot-complete Bitcoin Script semantics, era by era, with zero mismatches over 288K real inputs.

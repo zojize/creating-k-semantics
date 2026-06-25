@@ -12,6 +12,19 @@ These are the *language* idioms. The Bitcoin case study applies the same idioms 
 
 ---
 
+## Front end: tokens and transforms the grammar can't express
+
+The tutorial languages parse straight from `$PGM:Pgm` using builtin `Int`/`Id`/`String` tokens. A real language breaks both halves of that assumption, in ways that are non-obvious facts about K's scanner and cost real time to rediscover.
+
+**A parse-time transform the grammar can't express → a separate source→source pass.** K's GLR parser is error-driven and discards whitespace and newlines as layout, so context-sensitive lexing the spec mandates is not expressible as a production: JavaScript Automatic Semicolon Insertion, Python/Haskell significant indentation, the JavaScript `/`-division-versus-regex disambiguation. Model it as a *second K definition* that rewrites source text into normalised text (an in-K lexer plus the transformation), then let the evaluator grammar parse the normalised output, where the irregularity is gone (explicit terminators, explicit block delimiters). Two kompiled definitions, a thin harness moving one string between them — the front-end shape KJS uses for ASI, and the one any layout-sensitive language needs.
+
+**Custom-token gotchas — a real lexer hits all of these:**
+- A `$`-bearing identifier token collides with the builtin `KConfigVar` token used for `$PGM` in the configuration. Tag the token `[token, prec(-1)]` so `KConfigVar` and keyword terminals win the scanner tie *inside the definition*, while the identifier still lexes in a *program* (which contains no `KConfigVar`).
+- A custom numeric or string token collides with builtin `Int`/`String` and can corrupt K's *own* library rules. Keep custom number tokens disjoint from `Int`; transcode source strings into the builtin `String` sort rather than defining a string token.
+- **K's scanner is ASCII-only and byte-based.** It rejects non-ASCII in a token char-class and does not interpret `\uXXXX` in a token regex; K `String`s are byte sequences (`lengthString("café") == 5`). A Unicode identifier therefore cannot be a grammar token — recognise it in the source→source pass (test `ordChar(c) >= 128`) and carry it as a wrapped builtin `String` (e.g. an `@id("<utf-8 bytes>")` node), not a token.
+- `{ }` is reserved for K projections, so a List-sort-in-braces (`{ Ss:Stmts }`) never matches in a rule — use explicit block productions (`Block ::= "{" "}" | "{" Stmts "}"`).
+- Overlapping function or rule cases are nondeterministic unless ordered with `[priority(N)]` (lower tried first) or `[owise]`.
+
 ## Foundations
 
 **Syntax is semantics.** A K definition opens as a BNF grammar; the AST *is* the term rules rewrite. Sorts double as static categories and the runtime term universe.
@@ -127,6 +140,8 @@ These are the *language* idioms. The Bitcoin case study applies the same idioms 
 ```
 `1_k/3_lambda++/lesson_6/lambda.md:110-116` → `closure(Rho,X,E)` *is* a JS function's `[[Environment]]` / Python's `__closure__` — lexical (not dynamic) capture, which JS/Python require.
 
+**K `Map` is unordered — keep a parallel key `List` when enumeration order is observable.** `keys(M)` yields no guaranteed order. When the language exposes property/key order — JavaScript `for-in` and `Object.keys`, Python `dict` insertion order — store an insertion-ordered `List` of keys beside the `Map` and iterate *that*, updating both together on insert and delete. Relying on `Map` iteration order passes locally and then diverges from the reference impl under a different key set — a bug the no-regression gate catches late but the differential oracle catches early.
+
 ## Control: calls, exceptions, concurrency, I/O
 
 **Calls/returns via a control stack.** A `<control>` cell holds an `<fstack>`; calling pushes a `(Env, K, ControlContext)` frame and switches env; `return` pops it and reinstalls the caller's continuation.
@@ -203,6 +218,7 @@ These are the *language* idioms. The Bitcoin case study applies the same idioms 
 - **Building closures/exceptions/threads on substitution or a single global scope.** Substitution (LAMBDA) does not scale to mutation, aliasing, or shared state; switch to closure values over env+store and saved-continuation control stacks.
 - **Bolting type checking into the execution rules.** Keep it a separate rewrite theory over the same grammar.
 - **Threading a manual global counter** for allocation/thread-ids instead of `!N`/`!T` freshness — a frequent source of accidental collisions.
+- **Relying on `Map` iteration order** where the language exposes enumeration order (JS `for-in`, Python `dict`). K `Map`s are unordered; keep a parallel insertion-ordered key `List`.
 
 ## How this maps back to the case study
 

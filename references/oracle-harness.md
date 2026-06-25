@@ -17,6 +17,21 @@ The harness must let the loop **select by layer/feature tag** so Step 4 can targ
 
 ---
 
+## Driving the K definition from the harness
+
+How you *invoke* K matters as much as what you check — the harness runs on every loop iteration, so build it on solid ground. Two substrates:
+
+- **Hand-rolled `subprocess` over `kompile`/`krun`.** Quickest to stand up, but brittle: you scrape K's textual output, juggle temp files, and re-implement what the toolchain already does.
+- **The pyk toolchain (recommended beyond a toy).** Declare each definition as a `kdist` build target and resolve it with `kdist.get(...)`; run programs in-process via `llvm_interpret`; read results by matching the **KORE `Pattern` AST** — find the cell you want and project out its `DV` — instead of parsing text. This is the idiomatic K-in-Python substrate (kimp, kevm, KJS use it). It is orthogonal to a vector-assembly runner like `test262-harness`: that builds the program text, this runs the K definition on it.
+
+Three traps surface once you run a *suite of many small programs*, independent of language:
+
+- **K `String`s are byte sequences, not Unicode.** Moving non-ASCII across the host↔KORE boundary needs a byte-exact encoding (treat the K String as a Latin-1 view of its UTF-8 bytes), or identifiers and string literals mojibake. Same byte-truth as why a Unicode token can't exist (k-patterns.md, front-end section).
+- **Deep terms overflow.** A large program's right-recursive cons-list (and any deep stuck residual) nests deeper than the host language's default recursion limit *and* the parser stack — parse and serialise KORE on a worker thread with a raised limit and a roomy stack, or big inputs error instead of being measured.
+- **The result configuration is huge.** It carries the whole store/heap, and (de)serialising it per test dominates cost — clear result-only cells at the terminal step. For thousands of tiny programs the per-invocation overhead (process spawn + KORE (de)serialisation) routinely dwarfs the rewrite engine itself, so profile end-to-end, not just the rewrite. This is the "oversized result patterns" cliff the method warns about.
+
+---
+
 ## JavaScript
 
 **Spec — ECMA-262** (tc39.es/ecma262). Its *abstract operations* are written as numbered pseudocode; mirror their structure directly in K rules (one rule per step, or per algorithm). Track the edition: ES5 is the 5th edition (test262 references the 5.1 revision), ES2015 the 6th, then yearly (ES2016…).
@@ -61,6 +76,12 @@ for test in Lib/test/{test_grammar,test_syntax,...}.py:
 for src in harvested_corpus(feature):
     record(src, expected = run_cpython(src), got = run_k_semantics(src))
 ```
+
+---
+
+## Keep the reference oracle hermetic
+
+The differential oracle is ground truth only if running the program under test does not perturb the oracle itself. A wrapper that executes the program inside the harness's own scope can leak the harness's bindings into the program and manufacture a failure the real engine never produces. Concretely: running a program via `(0, eval)(src)` in a Node wrapper executes it in global scope, so a program declaring a global with the same name as a wrapper local throws a spurious "already declared" error; a Python `exec(src, ns)` oracle that reuses a populated namespace leaks names the same way. Isolate the wrapper — run the program inside a fresh function scope / IIFE, give it a clean namespace, and use deliberately obscure internal names as a belt. A leaking oracle does not fail loudly; it silently relabels good vectors as failures and poisons every comparison drawn from it.
 
 ---
 

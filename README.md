@@ -15,8 +15,8 @@ The skill encodes the oracle gate, the per-language harness wiring (test262 + V8
 
 ```text
 SKILL.md                                  the method (loaded when the skill runs)
-references/oracle-harness.md              concrete JS/Python oracle wiring
-references/k-patterns.md                  transferable K idioms (verbatim from the K PL tutorial)
+references/oracle-harness.md              oracle wiring (JS/Python), the pyk run-substrate, hermetic oracles
+references/k-patterns.md                  transferable K idioms (K PL tutorial) + real-language front-end & scanner lessons
 references/case-study-bitcoin-script.md   the decoupled worked example
 ```
 
