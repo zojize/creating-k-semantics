@@ -1,14 +1,11 @@
-# Case study: klox — Lox in K (the simpler, non-stack example)
+# Case study: klox — Lox in K
 
-A second worked instance of the method, deliberately simpler than the Bitcoin one and
-**non-stack-based**: an executable K semantics of **Lox** (the language from *Crafting
-Interpreters*), built test-first against Lox's own reference suite. Repo:
-[`klox`](https://github.com/zojize/klox). Where the Bitcoin study shows the method at
-consensus scale, this one shows it on an ordinary imperative + OO language — variables,
-lexical scope, closures, control flow, functions, classes, inheritance — so it exercises
-the [k-patterns](k-patterns.md) (env+store, closures, control stack, methods/`this`)
-rather than a stack machine. It was driven **autonomously** through the book chapter by
-chapter, and every number below was *run*, not asserted.
+An executable K semantics of **Lox** (the language from *Crafting Interpreters*), built
+test-first against Lox's own reference suite. Repo: [`klox`](https://github.com/zojize/klox).
+Lox is an ordinary imperative + OO language — variables, lexical scope, closures, control
+flow, functions, classes, inheritance — so it exercises the [k-patterns](k-patterns.md):
+env+store, closures, the control stack, methods and `this`. It was driven **autonomously**
+through the book chapter by chapter, and every number below was *run*, not asserted.
 
 ## The three oracles (Step 0) — Lox qualifies cleanly
 
@@ -127,7 +124,7 @@ follows IEEE/clox and actually *passes* a test jlox fails), `-0.0 == 0.0`, and
 folded into `STATUS.md` as known divergences. That is the judge pass working as the method
 intends: not finding cheats, but tightening the "mirrors jlox" claim to exactly the truth.
 
-## The harness is the pyk best-practice, dogfooded
+## The harness: the pyk best-practices, applied
 
 `klox` is the [pyk-harness](pyk-harness.md) reference made concrete: a
 `[project.entry-points.kdist]` build target whose `Target.build` calls the in-process
@@ -143,14 +140,14 @@ reasons. Project hygiene: PEP 621 + hatchling + `uv` + ruff + pyright, `kframewo
 
 `fib(25)` (242,785 calls) runs in ~5.8s on the LLVM backend — ~42,000 Lox-calls/s, with
 no cost cliff (deep recursion completes, no quadratic blowup). The ~1.4s *per-program*
-floor in the harness is Python/uv startup plus KORE text (de)serialization — the **same**
-finding as the Bitcoin study, and a native caller would erase it.
+floor in the harness is Python/uv startup plus KORE text (de)serialization — a
+per-invocation K cost, not a klox one, that a native caller would erase.
 
 ## What this case study is for
 
-It is the *small, legible* companion to the Bitcoin study: a reader who wants to see the
-method's loop end-to-end — gate, layer, write-a-rule-from-the-spec, run-the-oracle, green,
-advance — can read `klox` in one sitting, no crypto or consensus background needed. It
-also proves the method is not Bitcoin-shaped: the same skill produced a Taproot-complete
-stack-machine semantics and a closures-and-classes tree-walking semantics from the same
-steps, and in both the oracle — not the author's confidence — was what said "done."
+A legible, end-to-end run of the method's loop — gate, layer, write-a-rule-from-the-spec,
+run-the-oracle, green, advance — short enough to read in one sitting. Its takeaway is the
+method's central claim made concrete: the oracle, not the author's confidence, is what
+says "done." Each defect above — a lexer trap hidden behind whitespace, a scope model that
+held until a forward reference, a grammar that hung instead of rejecting — was caught as a
+red test, not reasoned away.
