@@ -113,6 +113,20 @@ groups outside the language-conformance set (`scanning`, `expressions`, `benchma
 own runner excludes them. This is the method's discipline: **document the layer you
 didn't build, with the tests it owns, instead of faking coverage.**
 
+## The anti-overfitting judge pass (Step 4) — run, and clean
+
+An independent agent diffed every rule group in `lox.k` against the corresponding jlox
+method. Verdict: *faithful and substantially non-overfit — no rule contorted to pass a
+single test, no magic constant.* The choices that *look* like overfitting (env-id capture
+by reference, a fresh env-id per method bind, the deterministic `clock` stub) it confirmed
+as faithful models of jlox's mutable `Environment`/`LoxFunction.bind`, corroborated by the
+hardest tests. What it *did* surface were three honest **faithfulness** notes where K's
+general IEEE semantics differ from jlox's Java-specific behavior — `NaN == NaN` (klox
+follows IEEE/clox and actually *passes* a test jlox fails), `-0.0 == 0.0`, and
+`Double.toString`'s scientific-notation range — none of which the suite pins. They were
+folded into `STATUS.md` as known divergences. That is the judge pass working as the method
+intends: not finding cheats, but tightening the "mirrors jlox" claim to exactly the truth.
+
 ## The harness is the pyk best-practice, dogfooded
 
 `klox` is the [pyk-harness](pyk-harness.md) reference made concrete: a
