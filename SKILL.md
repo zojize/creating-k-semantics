@@ -16,7 +16,7 @@ Two nested loops run this:
 
 The failure mode to fear is **overfitting**: rules contorted to pass a test instead of modeling the spec. The spec document is the guard against it; the no-regression gate and the reference implementation are the net that catches it.
 
-This skill is K-Framework-specific but language-agnostic. Bitcoin Script is the proven success story, kept entirely in [references/case-study-bitcoin-script.md](references/case-study-bitcoin-script.md) so nothing here couples to it.
+This skill is K-Framework-specific but language-agnostic. Bitcoin Script (a consensus stack machine) and Lox (a tree-walking imperative/OO language) are the worked examples, kept entirely in their case-study references so nothing here couples to either.
 
 ## The loop at a glance
 
@@ -131,3 +131,4 @@ An executable semantics that cannot run real-world-sized programs is not finishe
 - [references/pyk-harness.md](references/pyk-harness.md) — building the harness as a proper Python project: drive K through the pyk library (kdist `Target` builds, in-process `kompile`/`llvm_interpret`, KORE-AST results, Kore-RPC `APRProof`) instead of subprocessing the K CLI, plus pyproject/uv/typing hygiene. Verified against kimp, KEVM, and bitcoin-script.
 - [references/performance.md](references/performance.md) — the K optimization toolkit when real inputs are too slow: the O(n²) `+Bytes`/`+List` trap and streamed accumulators, native bulk hooks with a pure-K twin and `[simplification]` equivalence, `[concrete]` result-cell cleanup, binary-KORE construction, and bounding native-backend memory over long suite runs.
 - [references/case-study-bitcoin-script.md](references/case-study-bitcoin-script.md) — the proven success story: how this exact method built a Taproot-complete Bitcoin Script semantics, era by era, with zero mismatches over 288K real inputs.
+- [references/case-study-lox.md](references/case-study-lox.md) — the simpler, non-stack companion: building a Lox (Crafting Interpreters) semantics chapter by chapter against its reference test suite; a small, legible end-to-end run of the loop with no crypto background needed.

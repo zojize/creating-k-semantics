@@ -19,7 +19,8 @@ references/oracle-harness.md              oracle wiring (JS/Python), the pyk run
 references/pyk-harness.md                 build/run/prove via the pyk library, not the K CLI; pyproject/uv/typing hygiene
 references/k-patterns.md                  transferable K idioms (K PL tutorial) + real-language front-end & scanner lessons
 references/performance.md                 the K optimization toolkit when real inputs are too slow
-references/case-study-bitcoin-script.md   the decoupled worked example
+references/case-study-bitcoin-script.md   worked example: a consensus stack machine
+references/case-study-lox.md              worked example: Lox, a tree-walking imperative/OO language
 ```
 
 ## Install
