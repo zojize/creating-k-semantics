@@ -8,10 +8,10 @@ For each vector, a structured record — never a bare boolean. Distinguish the f
 
 ```text
 { id, tag, expected, got, status }
-status ∈ { pass, wrong-value, wrong-error-class, stuck/crash, harness-error, differential-mismatch }
+status ∈ { pass, wrong-value, wrong-error-class, stuck/crash, timeout, harness-error, differential-mismatch }
 ```
 
-`wrong-value` vs `wrong-error-class` vs `stuck` tells you *where* the bug is before you open a trace. `differential-mismatch` (your semantics disagrees with the reference impl on an input the suite never covered) is always a real bug — in your rules or your harness — never a result.
+`wrong-value` vs `wrong-error-class` vs `stuck` tells you *where* the bug is before you open a trace. **`timeout` is a real and frequent status, not a flake:** a grammar that *over-accepts* (a declaration allowed where the spec wants only a statement, say) does not fail to parse — it parses into a program that never terminates, so a missing grammar restriction surfaces as a *hang*. Give every program a wall-clock budget and record the kill as `timeout`; without it one runaway wedges the whole suite and you cannot tell a hang from slow progress. `differential-mismatch` (your semantics disagrees with the reference impl on an input the suite never covered) is always a real bug — in your rules or your harness — never a result.
 
 The harness must let the loop **select by layer/feature tag** so Step 4 can target one sub-goal, and **re-run everything** so Step 5 can prove no regression.
 

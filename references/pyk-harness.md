@@ -12,6 +12,7 @@ Verified across `kimp`/`imp-semantics`, KEVM (`kevm-pyk`), and the Bitcoin case 
 - In that module, subclass `pyk.kdist.api.Target` once per artifact (an `llvm` target, an `llvm-lib` for the C-linkable interpreter, a `haskell` target for proofs) and collect them in a module-level `__TARGETS__` dict.
 - Each `Target.build` calls the **in-process** `kompile(output_dir=..., backend=PykBackend.LLVM, llvm_kompile_type=LLVMKompileType.C, hook_namespaces=..., ...)` from `pyk.ktool.kompile` — typed args, no CLI string assembly.
 - Resolve the built directory at runtime with `kdist.get("<name>.<target>")` — never hardcode a build path. `kdist.build()` compiles in-process; `kdist.which()` locates without building. (Triggering a rebuild via the `kdist build` CLI is a tolerable convenience; assembling a `kompile` command yourself is not.)
+- **The no-CLI rule governs the *shipped harness*, not your debugging.** `kdist`/`kompile()` swallow the K diagnostic — a grammar ambiguity or rule error comes back as a Python `CalledProcessError`/traceback, not the actual `[Error] … ` line. When a build fails, run `kompile <main>.k --syntax-module … --output-definition /tmp/scratch` directly to *read* the real diagnostic, then fix the `.k` and rebuild through `kdist`. Debugging at the CLI is fine; the durable harness is what stays library-driven.
 
 ## Run — pyk bindings, not a `krun` subprocess
 
@@ -19,6 +20,8 @@ Verified across `kimp`/`imp-semantics`, KEVM (`kevm-pyk`), and the Bitcoin case 
 - **Build the initial configuration as a KORE AST**, not text: `top_cell_initializer({...})` with `inj` / `int_dv` / `bool_dv` / `map_pattern` from `pyk.kore.prelude`. (For very large embedded values, the binary KORE C API skips text serialization entirely — see [performance.md](performance.md).)
 - **Read results from the Pattern AST**: `pyk.kore.match` combinators (`km.app`, `km.arg`, `km.kore_map_of`) or `KoreParser(text).pattern()` then match `App` / `DV` / `String` nodes. Reserve `kore_print` for golden-file diffs only — never regex the pretty-printed output.
 - Hot loop: optionally bind the kompiled `interpreter` library directly via `ctypes` (`init_static_objects` + `take_steps`). Even pyk's `llvm_interpret` spawns the interpreter binary under the hood, so a `CDLL` binding is *strictly more* in-process (see performance.md).
+- **`llvm_interpret` has no timeout, but a conformance run needs one** (a grammar bug or a missing recursion limit yields a non-terminating program). Since `llvm_interpret` just runs the kompiled `interpreter` binary on the KORE text, invoke that binary yourself with `subprocess.run(..., input=init.text, timeout=T)` and parse its stdout with `KoreParser` — same mechanism, now bounded, and still not the `krun` CLI. Surface a kill as a `timeout` outcome, not a hang.
+- **Parallelize the runner.** Each program is an independent `parser_PGM` + `interpreter` subprocess, and subprocess waits release the GIL, so a `ThreadPoolExecutor` over the vectors gives near-linear speedup for free — warm the `kdist.get(...)` path once, then fan out. On a real suite this is the difference between a usable inner loop and a coffee break.
 
 ## Prove — the Kore RPC server, not a `kprove` subprocess
 
