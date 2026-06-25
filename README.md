@@ -1,6 +1,6 @@
 # creating-k-semantics
 
-A [Claude Code](https://claude.com/claude-code) skill for **building an executable formal [K-Framework](https://kframework.org/) semantics of a real programming language** (JavaScript, Python, a bytecode, a DSL) — oracle-driven and test-first.
+An agent skill for **building an executable formal [K-Framework](https://kframework.org/) semantics of a real programming language** (JavaScript, Python, a bytecode, a DSL) — oracle-driven and test-first.
 
 ## The method
 
@@ -20,13 +20,23 @@ references/k-patterns.md                  transferable K idioms (K PL tutorial) 
 references/case-study-bitcoin-script.md   the decoupled worked example
 ```
 
-## Install (symlink into Claude Code)
+## Install
 
-Clone anywhere, then symlink the repo into your skills directory so edits here stay live:
+This is a portable [agent skill](https://github.com/vercel-labs/skills) — a `SKILL.md` plus reference files, with no dependency on any one agent runtime. Install it into your coding agent with the [`skills`](https://github.com/vercel-labs/skills) CLI, which is harness-agnostic and auto-detects whichever agents you have (Claude Code, Cursor, Codex, and [70+ others](https://github.com/vercel-labs/skills)):
+
+```sh
+npx skills add zojize/creating-k-semantics
+```
+
+Pass `-a <agent>` to target a specific agent (e.g. `-a claude-code`), or `-g` to install globally instead of into the current project.
+
+### Or symlink it manually
+
+Clone anywhere, then symlink the repo into your agent's skills directory so edits here stay live:
 
 ```sh
 git clone https://github.com/zojize/creating-k-semantics ~/dev/creating-k-semantics
-ln -s ~/dev/creating-k-semantics ~/.claude/skills/creating-k-semantics
+ln -s ~/dev/creating-k-semantics <your-agent-skills-dir>/creating-k-semantics   # e.g. ~/.claude/skills/ for Claude Code
 ```
 
-Invoke it with `/creating-k-semantics`, or let it fire automatically when you start building a K semantics for a language.
+Invoke it by name (e.g. `/creating-k-semantics` if your agent supports slash commands), or let it fire automatically when you start building a K semantics for a language.
