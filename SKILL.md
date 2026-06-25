@@ -21,6 +21,7 @@ This skill is K-Framework-specific but language-agnostic. Bitcoin Script (a cons
 ## The loop at a glance
 
 ```text
+Mode    Ask: fully autonomous, or human checkpoints?        ── first
 Step 0  Gate: does the language qualify? (3 oracles)        ── once
 Step 1  Build the oracle harness                            ── once
 Step 2  Pick the oldest unfinished version layer            ──┐
@@ -29,7 +30,16 @@ Step 4  Per feature: read spec → write rules → run → green  ──│ loop
 Step 5  Advance gate: full re-run, zero regression          ──┘
 ```
 
-Stop-for-review at three design boundaries (below). End when every targeted version layer is green.
+Pick the **operating mode** first (next section), then run the loop. Three design-decision boundaries (below) are where tests cannot settle the call. The run ends when every targeted version layer is green — or, in fully autonomous mode, when it reaches strict 100% coverage or you stop it.
+
+## Operating mode — ask before Step 0
+
+Before doing anything else, **ask the user which mode to run**, then hold to it for the whole run:
+
+- **Human-checkpoint** — a judge agent settles the architecture and spec-ambiguity calls as it goes (the loop never blocks on you for those), but it **pauses for your sign-off at every layer advancement**. The completed version layer is the milestone: you review its green snapshot and the judge's design calls before the next layer opens.
+- **Fully autonomous** — the judge agent settles *all* design calls, advancement included, and the loop **never stops**. It runs until you manually stop it, or until it is confident it has reached **strict 100% oracle coverage** (defined under "Running it as a loop"). It pauses for nothing in between.
+
+The mode changes exactly one thing: who clears the **layer-advancement** boundary — you, or the judge. Everything else is identical in both modes: the inner loop, the per-feature anti-overfitting judge pass, and the no-regression gate. The Step 0 gate still applies first; autonomous mode runs the loop, it does not skip qualifying the language.
 
 ## Step 0 — Gate: qualify the language
 
@@ -75,7 +85,7 @@ lexing / values / types  →  expressions  →  statements & control flow
 
 Each sub-goal binds one spec section to one conformance subset.
 
-**At the builtins/stdlib stage, choose an architecture deliberately** (it is load-bearing enough to be a stop-for-review call). Two approaches work: write each builtin as native K rules, or **self-host the library in the source language itself** — a prelude written in the language under study, layered over a small core of K-level abstract operations. Real references lean on the latter: much of the JavaScript standard library is specified that way and KJS implements it in JavaScript; much of CPython's stdlib is Python. Self-hosting trades K-rule volume for a source prelude and keeps the K core small and spec-shaped; native rules keep everything in one formalism.
+**At the builtins/stdlib stage, choose an architecture deliberately** (it is load-bearing enough to be a design-decision call — see below). Two approaches work: write each builtin as native K rules, or **self-host the library in the source language itself** — a prelude written in the language under study, layered over a small core of K-level abstract operations. Real references lean on the latter: much of the JavaScript standard library is specified that way and KJS implements it in JavaScript; much of CPython's stdlib is Python. Self-hosting trades K-rule volume for a source prelude and keeps the K core small and spec-shaped; native rules keep everything in one formalism.
 
 **Completion criterion:** an ordered, written backlog of sub-goals for this layer; each item names its spec section and its test-subset tag.
 
@@ -83,7 +93,7 @@ Each sub-goal binds one spec section to one conformance subset.
 
 The first sub-goal, lexing, can hit a wall the tutorial languages never expose: **K's GLR parser is error-driven and discards whitespace and newlines as layout, so a context-sensitive lexing rule the spec mandates cannot be written as a grammar production.** JavaScript Automatic Semicolon Insertion, Python and Haskell significant indentation, and the JavaScript `/`-division-versus-regex split are all in this class — clean-grammar toy languages have none of them, a real language hits one on day one.
 
-The fix is architectural, so treat it as a **stop-for-review** decision: model the irregular part as a *separate K definition that rewrites source text into normalised source text* (an in-K lexer plus the transformation), then let the evaluator's grammar parse the normalised output, where the irregularity is gone — explicit statement terminators, explicit block delimiters. Two kompiled definitions, glued by a thin harness that moves one string between them. Decide this before writing the evaluator grammar; it shapes the whole front end. The scanner-level mechanics (custom tokens, non-ASCII, projection-reserved braces) are in [references/k-patterns.md](references/k-patterns.md).
+The fix is architectural, so treat it as a **design-decision** call (see below): model the irregular part as a *separate K definition that rewrites source text into normalised source text* (an in-K lexer plus the transformation), then let the evaluator's grammar parse the normalised output, where the irregularity is gone — explicit statement terminators, explicit block delimiters. Two kompiled definitions, glued by a thin harness that moves one string between them. Decide this before writing the evaluator grammar; it shapes the whole front end. The scanner-level mechanics (custom tokens, non-ASCII, projection-reserved braces) are in [references/k-patterns.md](references/k-patterns.md).
 
 ## Step 4 — The inner loop, per feature: read → write → verify → green
 
@@ -104,19 +114,28 @@ Before starting the next sub-goal or layer, re-run the **full** suite across eve
 
 **Completion criterion:** the full re-run shows zero regressions and the current layer's entire conformance subset is green. Record the green snapshot (passing count + commit) before advancing. A drop in any earlier layer's count blocks advancement — fix it first.
 
-## Stop-for-review boundaries
+## Design-decision boundaries
 
-The inner loop runs autonomously. **Stop** and get a human (or judge agent) decision at the three points tests cannot settle:
+Three points cannot be settled by a test — they are *design* calls. Who decides depends on the operating mode, but every decision is **recorded with its justification** either way:
 
-- **Configuration / architecture design** — before adding or restructuring cells, sorts, or phases. Config shape is load-bearing and not test-verifiable; a wrong shape is expensive to undo later.
-- **Spec ambiguity** — when the spec is unclear, or the suite and reference implementation disagree. Record the chosen interpretation and its justification.
-- **Layer advancement** — before opening a new version layer, review the green snapshot and the layer's design.
+- **Configuration / architecture design** — before adding or restructuring cells, sorts, or phases (this covers the builtins/stdlib and front-end-transform calls above). Config shape is load-bearing and not test-verifiable; a wrong shape is expensive to undo later. **A judge agent decides and logs it, in both modes** — it never halts the loop.
+- **Spec ambiguity** — when the spec is unclear, or the suite and reference implementation disagree. **A judge agent picks an interpretation and records it, in both modes.** An irreducible conflict becomes a documented `xfail` with its justification, never a halt.
+- **Layer advancement** — before opening a new version layer. **This is the one mode-dependent gate.** In **human-checkpoint** mode the loop stops here for your sign-off: you review the green snapshot *and the judge's architecture decisions from the layer*, so a bad call is caught before it compounds into the next layer. In **fully autonomous** mode the judge confirms the Step 5 advance gate and the loop continues.
 
-These three are *design* calls; the per-sub-goal **anti-overfitting judge pass** (Step 4) is the routine check that runs without stopping the loop.
+The per-sub-goal **anti-overfitting judge pass** (Step 4) runs in both modes regardless — it is the routine check that keeps the autonomous decisions honest.
 
 ## Running it as a loop
 
-The inner loop (Step 4) is fully agentic. A harness can drive Steps 3–5 within one version layer unattended — pick next sub-goal, write rules, run oracle, advance on green — pausing only at the stop-for-review boundaries. Keep the loop's stopping condition explicit: *advance on green, halt the layer when the subset is exhausted and the full re-run is clean.*
+The inner loop (Step 4) is fully agentic; a harness drives Steps 3–5 — pick next sub-goal, write rules, run oracle, advance on green — and the operating mode sets where it stops.
+
+- **Human-checkpoint:** run unattended within a layer, then **halt at each layer boundary** for sign-off before opening the next. Per-layer stopping condition: *advance on green, halt the layer when the subset is exhausted and the full re-run is clean.*
+- **Fully autonomous:** **never halt.** At each design-decision boundary the judge decides and logs (irreducible conflicts → documented `xfail`); on green, advance to the next sub-goal or layer without pausing. The run ends on only two conditions — the user **manually stops** it, or it is **confident it has reached strict 100% oracle coverage**, which means all four of these hold on one *full* re-run (not a partial one):
+  1. every targeted layer's entire conformance subset is green,
+  2. zero regressions across every layer,
+  3. zero differential mismatches on the harvested/labeled corpus (Step 1's bootstrap set), and
+  4. the anti-overfitting judge pass is clean — no rule without a spec basis.
+
+  Until all four hold, the layer is not done and the loop keeps going. A green static suite alone is **not** 100% coverage: the differential corpus and the judge pass are what make the claim trustworthy.
 
 ## Performance is part of "done"
 
