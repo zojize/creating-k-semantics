@@ -47,7 +47,7 @@ A language is buildable this way only if you can name and **run** all three orac
 
 ## Step 1 — Build the oracle harness (once)
 
-Wire the three oracles into a single command that, given your current (possibly near-empty) K definition, reports structured pass/fail per vector and flags any disagreement with the reference implementation. See [references/oracle-harness.md](references/oracle-harness.md) for concrete JS and Python wiring.
+Wire the three oracles into a single command that, given your current (possibly near-empty) K definition, reports structured pass/fail per vector and flags any disagreement with the reference implementation. See [references/oracle-harness.md](references/oracle-harness.md) for concrete JS and Python wiring. Build it as a real Python project that drives K through the **pyk library** — kdist build targets, in-process `llvm_interpret`, KORE-AST results — and **never the `kompile`/`krun`/`kprove` CLI via subprocess**; [references/pyk-harness.md](references/pyk-harness.md) is the build/run/prove API surface and project setup.
 
 The harness must:
 
@@ -128,5 +128,6 @@ An executable semantics that cannot run real-world-sized programs is not finishe
 
 - [references/k-patterns.md](references/k-patterns.md) — transferable K idioms for PL semantics, with verbatim examples from the K PL tutorial (LAMBDA, IMP, IMP++, SIMPLE) mapped to JS/Python; plus the front-end lessons real languages need beyond the tutorial's clean grammars (source→source transforms, scanner/token gotchas, unordered-`Map` enumeration).
 - [references/oracle-harness.md](references/oracle-harness.md) — concrete oracle wiring for JS (test262 + V8/Node + ECMA-262) and Python (Lib/test + CPython), the bootstrap-by-differential-labeling technique, the pyk substrate for invoking K, and keeping the reference oracle hermetic.
+- [references/pyk-harness.md](references/pyk-harness.md) — building the harness as a proper Python project: drive K through the pyk library (kdist `Target` builds, in-process `kompile`/`llvm_interpret`, KORE-AST results, Kore-RPC `APRProof`) instead of subprocessing the K CLI, plus pyproject/uv/typing hygiene. Verified against kimp, KEVM, and bitcoin-script.
 - [references/performance.md](references/performance.md) — the K optimization toolkit when real inputs are too slow: the O(n²) `+Bytes`/`+List` trap and streamed accumulators, native bulk hooks with a pure-K twin and `[simplification]` equivalence, `[concrete]` result-cell cleanup, binary-KORE construction, and bounding native-backend memory over long suite runs.
 - [references/case-study-bitcoin-script.md](references/case-study-bitcoin-script.md) — the proven success story: how this exact method built a Taproot-complete Bitcoin Script semantics, era by era, with zero mismatches over 288K real inputs.

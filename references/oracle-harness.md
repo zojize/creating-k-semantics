@@ -22,7 +22,7 @@ The harness must let the loop **select by layer/feature tag** so Step 4 can targ
 How you *invoke* K matters as much as what you check — the harness runs on every loop iteration, so build it on solid ground. Two substrates:
 
 - **Hand-rolled `subprocess` over `kompile`/`krun`.** Quickest to stand up, but brittle: you scrape K's textual output, juggle temp files, and re-implement what the toolchain already does.
-- **The pyk toolchain (recommended beyond a toy).** Declare each definition as a `kdist` build target and resolve it with `kdist.get(...)`; run programs in-process via `llvm_interpret`; read results by matching the **KORE `Pattern` AST** — find the cell you want and project out its `DV` — instead of parsing text. This is the idiomatic K-in-Python substrate (kimp, kevm, KJS use it). It is orthogonal to a vector-assembly runner like `test262-harness`: that builds the program text, this runs the K definition on it.
+- **The pyk toolchain (recommended beyond a toy).** Declare each definition as a `kdist` build target and resolve it with `kdist.get(...)`; run programs in-process via `llvm_interpret`; read results by matching the **KORE `Pattern` AST** — find the cell you want and project out its `DV` — instead of parsing text. This is the idiomatic K-in-Python substrate (kimp, kevm, KJS use it). It is orthogonal to a vector-assembly runner like `test262-harness`: that builds the program text, this runs the K definition on it. The full build/run/prove pyk API surface, the "never subprocess the K CLI" rule, and the Python project setup are in [pyk-harness.md](pyk-harness.md).
 
 Three traps surface once you run a *suite of many small programs*, independent of language:
 
